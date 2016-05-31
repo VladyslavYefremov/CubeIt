@@ -44,6 +44,7 @@ namespace E_2.Models
         Front, FrontOp,
         Up, UpOp,
         Back, BackOp,
+        Rotate, RotateOp,
         None
     }
 
@@ -126,6 +127,13 @@ namespace E_2.Models
             return Position.GetHashCode() ^ OnSide.GetHashCode() + IsNormal.GetHashCode() ^ Vector.GetHashCode();
         }
     }
+
+    class CubeCrossMashineState
+    {
+        public ElementState State { get; set; }
+
+        public CubeMove Move { get; set; }
+    }
     #endregion
 
     class Cube
@@ -147,8 +155,16 @@ namespace E_2.Models
                     var name = Enum.GetName(typeof(CubeMove), move);
 
                     var isReverseMove = name.Contains("Op");
+                    var isRotation = name.Contains("Rotate");
 
-                    sb.Append(isReverseMove ? name.ToLower()[0] : name[0]);
+                    if (isRotation)
+                    {
+                        sb.Append(isReverseMove ? "y" : "Y");
+                    }
+                    else
+                    {
+                        sb.Append(isReverseMove ? name.ToLower()[0] : name[0]);
+                    }
                 }
 
                 return sb.ToString();
@@ -199,6 +215,12 @@ namespace E_2.Models
                     break;
                 case CubeMove.BackOp:
                     PerformMoveBack(false);
+                    break;
+                case CubeMove.Rotate:
+                    PerformRotation();
+                    break;
+                case CubeMove.RotateOp:
+                    PerformRotation(false);
                     break;
                 case CubeMove.None:
                     break;
@@ -317,6 +339,39 @@ namespace E_2.Models
             right.TopLine =   clockwise ? bottomSideBottomLine : topSideTopLine;
             top.TopLine =       clockwise ? rightSideRightLine : leftSideLeftLine;
         }
+
+        private void PerformRotation(bool clockwise = true)
+        {
+            var front = this.Sides[CubeSide.Front];
+            var bottom = this.Sides[CubeSide.Down];
+            var top = this.Sides[CubeSide.Up];
+            var back = this.Sides[CubeSide.Back];
+            var left = this.Sides[CubeSide.Left];
+            var right = this.Sides[CubeSide.Right];
+
+            front.SideType =    clockwise ? CubeSide.Left : CubeSide.Right;
+            left.SideType =     clockwise ? CubeSide.Back : CubeSide.Front;
+            back.SideType =     clockwise ? CubeSide.Right : CubeSide.Left;
+            right.SideType =    clockwise ? CubeSide.Front : CubeSide.Back;
+
+            front.Rotate(clockwise);
+            right.Rotate(clockwise);
+            back.Rotate(clockwise);
+            left.Rotate(clockwise);
+
+            top.Rotate(clockwise);
+            bottom.Rotate(!clockwise);
+
+            Sides.Clear();
+
+            Sides.Add(front.SideType, front); // As left || right
+            Sides.Add(left.SideType, left); // As Back  || Front
+            Sides.Add(back.SideType, back); // As Right || Left
+            Sides.Add(right.SideType, right); // As Front || Back
+            Sides.Add(top.SideType, top); // As Front
+            Sides.Add(bottom.SideType, bottom); // As Front
+        }
+
         private bool ValidateSides()
         {
             if (Sides.Count != SidesNumber)
@@ -363,12 +418,6 @@ namespace E_2.Models
         }
     }
 
-    class CubeCrossMashineState
-    {
-        public ElementState State { get; set; }
-
-        public CubeMove Move { get; set; }
-    }
 
     class CubeCross
     {
@@ -475,11 +524,12 @@ namespace E_2.Models
             {new ElementState(CubePosition.Top, CubeSide.Right, true, CubeCornerVector.ToSide), new[] {CubeMove.Up}},
 
             {
-                new ElementState(CubePosition.Bottom, CubeSide.Back, true, CubeCornerVector.Outer), new[] {CubeMove.BackOp}
+                new ElementState(CubePosition.Bottom, CubeSide.Back, true, CubeCornerVector.Outer),
+                new[] {CubeMove.BackOp, CubeMove.UpOp, CubeMove.Back }
             },
             {
                 new ElementState(CubePosition.Bottom, CubeSide.Back, true, CubeCornerVector.ToSide),
-                new[] {CubeMove.BackOp, CubeMove.UpOp}
+                new[] {CubeMove.Left, CubeMove.UpOp, CubeMove.LeftOp }
             },
             {
                 new ElementState(CubePosition.Bottom, CubeSide.Back, true, CubeCornerVector.FromSide),
@@ -497,6 +547,58 @@ namespace E_2.Models
         public CubeCross(Cube cube)
         {
             this._cube = cube;
+        }
+
+        public void Invoke()
+        {
+            const int EdgesOrCorners = 4;
+
+            var edgeSortedCounter = 0;
+
+            while (edgeSortedCounter < EdgesOrCorners)
+            {
+                var currentEdgeState = FindEdgeAndGetState();
+
+                if (!CrossMashineState.ContainsKey(currentEdgeState))
+                    throw new Exception($"Couldn't find solution for the state: {currentEdgeState}!");
+
+                var moveToPerform = CrossMashineState[currentEdgeState];
+
+                if (moveToPerform != CubeMove.None)
+                    InvokeEdge();
+
+                edgeSortedCounter++;
+                _cube.PerformMove(CubeMove.Rotate);
+            }
+
+            var cornerSortedCounter = 0;
+
+            while (cornerSortedCounter < EdgesOrCorners)
+            {
+                var currentCornerState = FindCornerAndGetState();
+
+                if (!CrossMashineStateForCorner.ContainsKey(currentCornerState))
+                    throw new Exception($"Couldn't find solution for the state: {currentCornerState}!");
+
+                var movesToPerform = CrossMashineStateForCorner[currentCornerState];
+
+                var isFinalState = false;
+
+                foreach (var move in movesToPerform)
+                {
+                    if (move == CubeMove.None)
+                    {
+                        isFinalState = true;
+                        break;
+                    }
+                }
+
+                if (!isFinalState)
+                    InvokeCorner();
+
+                cornerSortedCounter++;
+                _cube.PerformMove(CubeMove.Rotate);
+            }
         }
 
         public void InvokeEdge()
@@ -520,17 +622,27 @@ namespace E_2.Models
 
                 _cube.PerformMove(moveToPerform);
 
+                var testMove = FindEdgeAndGetState();
+
                 if (movesToRestore.Count > 0)
                 {
                     var moveToRestore = movesToRestore.Pop();
 
-                    var name = Enum.GetName(typeof(CubeMove), moveToRestore);
+                    if (moveToRestore != moveToPerform)
+                    {
+                        var name = Enum.GetName(typeof(CubeMove), moveToRestore);
 
-                    var isReverseMove = name.Contains("Op");    // Like R' F' U' L' or B'
+                        var isReverseMove = name.Contains("Op"); // Like R' F' U' L' or B'
 
-                    moveToRestore = (CubeMove) ((byte) moveToRestore + (isReverseMove ? -1 : 1));
+                        moveToRestore = (CubeMove) ((byte) moveToRestore + (isReverseMove ? -1 : 1));
 
-                    _cube.PerformMove(moveToRestore);
+                        _cube.PerformMove(moveToRestore);
+                    }
+                    else
+                    {
+                        isRestorableMove = false;
+                    }
+                       
                 }
 
                 if (isRestorableMove)

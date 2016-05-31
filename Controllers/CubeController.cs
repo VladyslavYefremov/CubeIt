@@ -21,22 +21,6 @@ namespace E_2.Controllers
                 
         }
 
-        [HttpGet]
-        public IEnumerable<String> GetInformation()
-        {
-            return new[]
-            {
-                "lol",
-                "efr",
-                "vladyslav"
-            };
-        }
-
-        // [    {"direction":"u","cells":["y","w","y","w","y","w","y","w","y"]
-        //}         ,{"direction":"b","cells":["o","r","o","r","o","r","o","r","o"]
-        //            },{"direction":"f","cells":["r","o","r","o","r","o","r","o","r"]},
-        //          {"direction":"l","cells":["b","g","b","g","b","g","b","g","b"]},{"direction":"r","cells":["g","b","g","b","g","b","g","b","g"]},{"direction":"d","cells":["w","y","w","y","w","y","w","y","w"]}]
-
         [HttpPost]
         [Route("Cross")]
         public String PostCross([FromBody] string cube)
@@ -50,8 +34,8 @@ namespace E_2.Controllers
                 var cubeObj = new Cube(cubeData);
                 var cubeCross = new CubeCross(cubeObj);
                 //var a = cubeCross.FindCornerAndGetState();
-
-                cubeCross.InvokeCorner();
+                //cubeObj.PerformMove(CubeMove.RotateOp);
+                cubeCross.Invoke();
 
                 return cubeObj.Moves;
             }
