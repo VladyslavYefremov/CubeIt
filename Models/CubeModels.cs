@@ -418,7 +418,6 @@ namespace E_2.Models
         }
     }
 
-
     class CubeCross
     {
         #region Cross Mashine State dictionary
@@ -542,6 +541,82 @@ namespace E_2.Models
         };
         #endregion
 
+        private static readonly CubeMove[] EdgeTurnRightFormula = new[]{
+            CubeMove.Up, CubeMove.Right, CubeMove.UpOp, CubeMove.RightOp,
+            CubeMove.UpOp, CubeMove.FrontOp, CubeMove.Up, CubeMove.Front
+        };
+
+        private static readonly CubeMove[] EdgeTurnLeftFormula = {
+            CubeMove.UpOp, CubeMove.LeftOp, CubeMove.Up, CubeMove.Left,
+            CubeMove.Up, CubeMove.Front, CubeMove.UpOp, CubeMove.FrontOp
+        };
+
+        private static readonly Dictionary<ElementState, IEnumerable<CubeMove>> CrossMashineStateAfrerCross = new Dictionary
+            <ElementState, IEnumerable<CubeMove>>()
+        {
+            {new ElementState(CubePosition.Right, CubeSide.Front), new[] {CubeMove.None}},
+            {
+                new ElementState(CubePosition.Right, CubeSide.Front, false),
+                EdgeTurnRightFormula
+            },
+            {
+                new ElementState(CubePosition.Top, CubeSide.Front),
+                EdgeTurnRightFormula
+            },
+            {
+                new ElementState(CubePosition.Top, CubeSide.Front, false),
+                new[] { CubeMove.UpOp }
+            },
+            {
+                new ElementState(CubePosition.Top, CubeSide.Right, false),
+                new[] { CubeMove.Rotate }.Concat(EdgeTurnLeftFormula).Concat(new[]{CubeMove.RotateOp}).ToList()
+            },
+            {
+                new ElementState(CubePosition.Top, CubeSide.Right),
+                new[] { CubeMove.Up }
+            },
+            {
+                new ElementState(CubePosition.Top, CubeSide.Left, false),
+                new[] { CubeMove.UpOp, CubeMove.UpOp }
+            },
+            {
+                new ElementState(CubePosition.Top, CubeSide.Left),
+                new[] { CubeMove.UpOp }
+            },
+            {
+                new ElementState(CubePosition.Left, CubeSide.Front, false),
+                EdgeTurnLeftFormula
+            },
+            {
+                new ElementState(CubePosition.Left, CubeSide.Front),
+                EdgeTurnLeftFormula
+            },
+            {
+                new ElementState(CubePosition.Top, CubeSide.Back),
+                new[] { CubeMove.UpOp } 
+            },
+            {
+                new ElementState(CubePosition.Top, CubeSide.Back, false),
+                new[] { CubeMove.Up }
+            },
+            {
+                new ElementState(CubePosition.Right, CubeSide.Back, false),
+                new[] {CubeMove.Rotate, CubeMove.Rotate }.Concat(EdgeTurnRightFormula).Concat(new[]{CubeMove.RotateOp,CubeMove.RotateOp}).ToList()
+            },
+            {
+                new ElementState(CubePosition.Right, CubeSide.Back),
+                new[] {CubeMove.Rotate, CubeMove.Rotate }.Concat(EdgeTurnRightFormula).Concat(new[]{CubeMove.RotateOp,CubeMove.RotateOp}).ToList()
+            },
+            {
+                new ElementState(CubePosition.Left, CubeSide.Back, false),
+                new[] {CubeMove.Rotate, CubeMove.Rotate }.Concat(EdgeTurnLeftFormula).Concat(new[]{CubeMove.RotateOp,CubeMove.RotateOp}).ToList()
+            },
+            {
+                new ElementState(CubePosition.Left, CubeSide.Back),
+                new[] {CubeMove.Rotate, CubeMove.Rotate }.Concat(EdgeTurnLeftFormula).Concat(new[]{CubeMove.RotateOp,CubeMove.RotateOp}).ToList()
+            }
+        };
+
         private readonly Cube _cube;
 
         public CubeCross(Cube cube)
@@ -551,11 +626,11 @@ namespace E_2.Models
 
         public void Invoke()
         {
-            const int EdgesOrCorners = 4;
+            const int edgesOrCorners = 4;
 
             var edgeSortedCounter = 0;
 
-            while (edgeSortedCounter < EdgesOrCorners)
+            while (edgeSortedCounter < edgesOrCorners)
             {
                 var currentEdgeState = FindEdgeAndGetState();
 
@@ -573,7 +648,7 @@ namespace E_2.Models
 
             var cornerSortedCounter = 0;
 
-            while (cornerSortedCounter < EdgesOrCorners)
+            while (cornerSortedCounter < edgesOrCorners)
             {
                 var currentCornerState = FindCornerAndGetState();
 
@@ -582,21 +657,32 @@ namespace E_2.Models
 
                 var movesToPerform = CrossMashineStateForCorner[currentCornerState];
 
-                var isFinalState = false;
-
-                foreach (var move in movesToPerform)
-                {
-                    if (move == CubeMove.None)
-                    {
-                        isFinalState = true;
-                        break;
-                    }
-                }
+                var isFinalState = movesToPerform.Any(move => move == CubeMove.None);
 
                 if (!isFinalState)
                     InvokeCorner();
 
                 cornerSortedCounter++;
+                _cube.PerformMove(CubeMove.Rotate);
+            }
+
+            edgeSortedCounter = 0;
+
+            while (edgeSortedCounter < edgesOrCorners)
+            {
+                var currentCornerState = FindEdgeAndGetState(_cube.Sides[CubeSide.Front], _cube.Sides[CubeSide.Right]);
+
+                if (!CrossMashineStateAfrerCross.ContainsKey(currentCornerState))
+                    throw new Exception($"Couldn't find solution for the state: {currentCornerState}!");
+
+                var movesToPerform = CrossMashineStateAfrerCross[currentCornerState];
+
+                var isFinalState = movesToPerform.Any(move => move == CubeMove.None);
+
+                if (!isFinalState)
+                    InvokeEdgeSecondPart();
+
+                edgeSortedCounter++;
                 _cube.PerformMove(CubeMove.Rotate);
             }
         }
@@ -679,12 +765,34 @@ namespace E_2.Models
             } while (!endFound);
         }
 
-        public void simpleSolving()
+        public void InvokeEdgeSecondPart()
         {
-            // TODO: Implement cube rotating Y Y'
+            var endFound = false;
+
+            do
+            {
+                var edgeCurrentState = FindEdgeAndGetState(_cube.Sides[CubeSide.Front], _cube.Sides[CubeSide.Right]);
+
+                if (!CrossMashineStateAfrerCross.ContainsKey(edgeCurrentState))
+                    throw new Exception($"Couldn't find solution for the state: {edgeCurrentState}!");
+
+                var movesToPerform = CrossMashineStateAfrerCross[edgeCurrentState];
+
+                foreach (var move in movesToPerform)
+                {
+                    if (move == CubeMove.None)
+                    {
+                        endFound = true;
+                        break;
+                    }
+
+                    _cube.PerformMove(move);
+                }
+
+            } while (!endFound);
         }
 
-        public ElementState FindEdgeAndGetState()
+        public ElementState FindEdgeAndGetState(Side first = null, Side second = null)
         {
             var front = _cube.Sides[CubeSide.Front];
             var bottom = _cube.Sides[CubeSide.Down];
@@ -693,8 +801,8 @@ namespace E_2.Models
             var left = _cube.Sides[CubeSide.Left];
             var right = _cube.Sides[CubeSide.Right];
 
-            var frontColor = front.Color;
-            var bottomColor = bottom.Color;
+            var frontColor = first == null ? front.Color : first.Color;
+            var bottomColor = second == null ? bottom.Color : second.Color;
 
             ElementState state = null;
 

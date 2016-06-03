@@ -19,7 +19,7 @@ window.cube = new ERNO.Cube({
 
 cube.hide();
 
-var container = document.getElementById('container');
+var container = document.getElementById('cube_container');
 container.appendChild(cube.domElement);
 
 if (isMobile) {
@@ -141,31 +141,6 @@ function setupLogo() {
     cube.addEventListener('onTwistComplete', scopedCheckQueue);
     cube.twist(LOGO_SEQUENCE);
 
-    // function setWhiteBg(selector) {
-    //     var elements = document.querySelectorAll(selector);
-    //     for (var i = 0; i < elements.length; ++i) {
-    //         elements[i].style.backgroundColor = ERNO.WHITE.hex;
-    //     }
-    // }
-
-    /* White slides before start */
-
-    // var prefix = '.cubeletId-';
-    // cube.cubelets.forEach(function(cubelet, index) {
-    //     if (cubelet.logo != true) {
-    //         setWhiteBg(prefix + cubelet.id + ' .sticker');
-    //     }
-    //     if (cubelet.id == 8 || cubelet.id == 17) {
-    //         setWhiteBg(prefix + cubelet.id + ' .sticker.red');
-    //     }
-    //     if (cubelet.id == 21 || cubelet.id == 25) {
-    //         setWhiteBg(prefix + cubelet.id + ' .sticker.yellow');
-    //     }
-    //     if (cubelet.id == 20) {
-    //         setWhiteBg(prefix + cubelet.id + ' .sticker.yellow');
-    //         setWhiteBg(prefix + cubelet.id + ' .sticker.orange');
-    //     }
-    // });
     setTimeout(scrambleCube, 1000);
 }
 function enableDeviceMotion() {
@@ -180,25 +155,6 @@ function enableDeviceMotion() {
 }
 function pauseDeviceMotion() {
     motion.paused = true;
-}
-function initiateAudio() {
-    cube.audioList = [
-        'CubeDoodle01',
-        'CubeDoodle02',
-        'CubeDoodle03',
-        'CubeDoodle04',
-        'CubeDoodle05',
-        'CubeDoodle06',
-        'CubeDoodle07',
-        'CubeDoodle08'
-    ];
-    cube.audio = new Html5Audio(cube.audioList,
-            'examples/doodle-iframe/media/SingleSounds');
-    cube.audio.loadAll();
-    cube.addEventListener('onTwistComplete', function(e) {
-        cube.audio.play(cube.audioList[
-                Math.floor(Math.random() * (cube.audioList.length - 1))]);
-    });
 }
 
 // TODO: MAIN FUNCTION CUBE START
@@ -216,17 +172,6 @@ function startInteractiveCube() {
         }
         if (cube.isSolved()) {
             // TODO: USE CUBE IS SOLVED
-            // setTimeout(function() {
-            //     cube.hideInvisibleFaces = false;
-            //     cube.showIntroverts();
-            //     if (shadow && shadow.domElement) {
-            //         shadow.domElement.style.opacity = '0';
-            //     }
-            //     if (!sentCertificate) {
-            //         sentCertificate = true;
-            //         doCertificate();
-            //     }
-            // }, 1000);
         }
     });
     cube.mouseControlsEnabled = true;
@@ -260,7 +205,7 @@ function scrambleCube() {
     new TWEEN.Tween(cube.rotation)
     .to({
                 x: (25).degreesToRadians(),
-                y: (42).degreesToRadians(),
+                y: (-42).degreesToRadians(),
                 z: 0
             }, 3000)
     .easing(TWEEN.Easing.Quartic.InOut)
@@ -281,12 +226,12 @@ var _queryResult = "";
 
 $("#performQueryResult").click(function () {
     if (_queryResult.length > 0) {
-        //cube.twistDuration = 240;
-        //cube.twistCountDown =
-        //        _queryResult.length + cube.twistQueue.history.length;
+        $("#performQueryResult").prop("disabled", true);
         cube.twist(_queryResult);
         _queryResult = "";
+        $("#numberOfMoves").text("-");
     }
+    return;
 });
 
 $("#sendToSolver").click(function () {
@@ -353,12 +298,36 @@ $("#sendToSolver").click(function () {
 
     var uri = "/api/Cube/Cross/";
 
+    $("#sendToSolver").prop("disabled", true);
+    $("#performQueryResult").prop("disabled", true);
+
     $.post(uri,
     { '': JSON.stringify(sides) },
-    function (resultingDta) {
-        console.log(resultingDta);
-        _queryResult = resultingDta;
-        $("#queryResult").text(resultingDta);
+    function (data) {
+        _queryResult = data;
+        $("#numberOfMoves").text(data.length);
+        //console.log(data);
+
+        var fl = data.length;
+        var l = fl / 4;
+
+        if (l > 1) {
+            var resultingString = "";
+            var index = 0;
+
+            while (index < fl) {
+                resultingString += data.substring(index, (index + 4) > (fl - 1) ? (fl) : (index + 4)) + " ";
+                index += 4;
+            }
+
+            $("#queryResult").text(resultingString);
+        } else {
+            $("#queryResult").text(data);
+        }
+
+        $("#sendToSolver").prop("disabled", false);
+        $("#performQueryResult").prop("disabled", false);
     });
+    return;
 });
 

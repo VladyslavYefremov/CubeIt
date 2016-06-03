@@ -10,35 +10,24 @@ body {
   margin: 0;
   vertical-align: baseline;
 }
-#fail {
-  position: absolute;
-  display: none;
-  top: 50%;
-  left: 50%;
-  margin-left: -288px;
-  margin-top: -117px;
+
+#queryResult {
+    margin-top: 15px;
 }
-@media not screen and (-webkit-transform-3d){
-  #container {
-    visibility: hidden;
-  }
-  #fail {
-    display: block;
-  }
-}
+
 .grey {
   background: #555;
 }
 .white {
   background: #FFF;
 }
-#container {
+#cube_container {
   cursor: pointer;
-  height: 50%;
+  height: 65%;
   overflow: hidden;
   width: 80%;
   position:relative;
-  border: 1px dashed black;
+  /*border: 1px dashed black;*/
   margin: 20px auto 20px auto;
 }
 .shadow {
