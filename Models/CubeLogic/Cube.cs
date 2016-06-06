@@ -35,7 +35,7 @@ namespace E_2.Models
                     }
                 }
 
-                return sb.ToString();
+                return sb.ToString().Replace("YYYY", "");
             }
         }
 
@@ -77,6 +77,12 @@ namespace E_2.Models
                     break;
                 case CubeMove.UpOp:
                     PerformMoveUp(false);
+                    break;
+                case CubeMove.Down:
+                    PerformMoveDown();
+                    break;
+                case CubeMove.DownOp:
+                    PerformMoveDown(false);
                     break;
                 case CubeMove.Back:
                     PerformMoveBack();
@@ -165,6 +171,26 @@ namespace E_2.Models
             front.TopLine = clockwise ? rightSideLeftLine : leftSideRightLine;
             left.RightLine = clockwise ? frontSideTopLine : backSideBottomLine;
         }
+        private void PerformMoveDown(bool clockwise = true)
+        {
+            var front = this.Sides[CubeSide.Front];
+            var bottom = this.Sides[CubeSide.Down];
+            var back = this.Sides[CubeSide.Back];
+            var left = this.Sides[CubeSide.Left];
+            var right = this.Sides[CubeSide.Right];
+
+            bottom.Rotate(clockwise);
+
+            var backSideTopLine = back.TopLine;
+            var rightSideRightLine = right.RightLine;
+            var frontSideBottomLine = front.BottomLine;
+            var leftSideLeftLine = left.LeftLine;
+
+            back.TopLine = clockwise ? rightSideRightLine : leftSideLeftLine;
+            right.RightLine = clockwise ? frontSideBottomLine : backSideTopLine;
+            front.BottomLine = clockwise ? leftSideLeftLine : rightSideRightLine;
+            left.LeftLine = clockwise ? backSideTopLine : frontSideBottomLine;
+        }
         private void PerformMoveFront(bool clockwise = true)
         {
             var front = this.Sides[CubeSide.Front];
@@ -207,7 +233,6 @@ namespace E_2.Models
             right.TopLine = clockwise ? bottomSideBottomLine : topSideTopLine;
             top.TopLine = clockwise ? rightSideRightLine : leftSideLeftLine;
         }
-
         private void PerformRotation(bool clockwise = true)
         {
             var front = this.Sides[CubeSide.Front];

@@ -77,9 +77,315 @@ namespace E_2.Models
                 edgeSortedCounter++;
                 _cube.PerformMove(CubeMove.Rotate);
             }
+
+            InvokeTopCross();
+            InvokeTopCorners();
+            InvokeTopCross();
         }
 
-        public void InvokeEdge()
+        public void InvokeTopCorners()
+        {
+            var front =     _cube.Sides[CubeSide.Front];
+            var top =       _cube.Sides[CubeSide.Up];
+            var back =      _cube.Sides[CubeSide.Back];
+            var left =      _cube.Sides[CubeSide.Left];
+            var right =     _cube.Sides[CubeSide.Right];
+
+            var formula = new[]
+            {
+                CubeMove.Up,    CubeMove.Right,
+                CubeMove.UpOp,  CubeMove.LeftOp,
+                CubeMove.Up,    CubeMove.RightOp,
+                CubeMove.UpOp,  CubeMove.Left
+            };
+
+            const int maxStepsToPerform = 4;
+
+            var movesToPerofrm = new List<CubeMove>();
+            bool foundBase = false;
+            var stepCounter = 0;
+
+            while (true)
+            {
+                // TODO: Reorganize this part of loop
+                var frontState = FindCornerAndGetState(right, top, front);
+                var leftState = FindCornerAndGetState(front, top, left);
+                var rightState = FindCornerAndGetState(back, top, right);
+                var backState = FindCornerAndGetState(left, top, back);
+
+                if (frontState.IsCornerAt(CubePosition.Top, CubeSide.Front) &&
+                    leftState.IsCornerAt(CubePosition.Top, CubeSide.Left) &&
+                    rightState.IsCornerAt(CubePosition.Top, CubeSide.Right) &&
+                    backState.IsCornerAt(CubePosition.Top, CubeSide.Back)
+                    )
+                {
+                    break;
+                }
+
+                if (stepCounter++ > maxStepsToPerform)
+                    throw new Exception($"Couldn't find a solution for this cube! [StepCounter is > {maxStepsToPerform}] [Placing conrners!]");
+                
+                movesToPerofrm.Clear();
+
+                if (frontState.IsCornerAt(CubePosition.Top, CubeSide.Front))
+                {
+                    movesToPerofrm.AddRange(formula);
+                    foundBase = true;
+                }
+                else if (!foundBase && leftState.IsCornerAt(CubePosition.Top, CubeSide.Left))
+                {
+                    movesToPerofrm.Add(CubeMove.RotateOp);
+                    foundBase = true;
+                }
+                else if (!foundBase && rightState.IsCornerAt(CubePosition.Top, CubeSide.Right))
+                {
+                    movesToPerofrm.Add(CubeMove.Rotate);
+                    foundBase = true;
+                }
+                else if (!foundBase && backState.IsCornerAt(CubePosition.Top, CubeSide.Back))
+                {
+                    movesToPerofrm.Add(CubeMove.Rotate);
+                    movesToPerofrm.Add(CubeMove.Rotate);
+                    foundBase = true;
+                }
+                else
+                {
+                    movesToPerofrm.AddRange(formula);
+                }
+
+                if (movesToPerofrm.Count > 0)
+                    foreach (var cubeMove in movesToPerofrm)
+                        _cube.PerformMove(cubeMove);
+
+                front = _cube.Sides[CubeSide.Front];
+                top = _cube.Sides[CubeSide.Up];
+                back = _cube.Sides[CubeSide.Back];
+                left = _cube.Sides[CubeSide.Left];
+                right = _cube.Sides[CubeSide.Right];
+            }
+
+            var formulaRolling = new[]
+            {
+                CubeMove.RightOp,    CubeMove.DownOp,
+                CubeMove.Right,    CubeMove.Down,
+                CubeMove.RightOp,    CubeMove.DownOp,
+                CubeMove.Right,    CubeMove.Down
+            };
+
+            var stateNumber = 0;
+            stepCounter = 0;
+
+            while (true)
+            {
+                // TODO: Reorganize this part of loop
+                var frontState = FindCornerAndGetState(right, top, front);
+                var leftState = FindCornerAndGetState(front, top, left);
+                var rightState = FindCornerAndGetState(back, top, right);
+                var backState = FindCornerAndGetState(left, top, back);
+
+                if (frontState.Vector == CubeCornerVector.Outer && 
+                    leftState.Vector == CubeCornerVector.Outer &&
+                    rightState.Vector == CubeCornerVector.Outer &&
+                    backState.Vector == CubeCornerVector.Outer)
+                {
+                    break;
+                }
+
+                var statesList = new[]
+                {
+                    frontState,
+                    rightState,
+                    backState,
+                    leftState
+                };
+
+                if (stepCounter++ > maxStepsToPerform + 2 || stateNumber >= statesList.Length)
+                    throw new Exception($"Couldn't find a solution for this cube! [Rolling conrners out!]");
+
+                movesToPerofrm.Clear();
+
+                var currentState = statesList[stateNumber];
+
+                if (currentState.Vector == CubeCornerVector.Outer)
+                {
+                    movesToPerofrm.Add(CubeMove.Up);
+                    stateNumber++;
+                }
+                else
+                {
+                    movesToPerofrm.AddRange(formulaRolling);
+
+                    if (currentState.Vector == CubeCornerVector.ToSide)
+                        movesToPerofrm.AddRange(formulaRolling);
+                }
+
+                if (movesToPerofrm.Count > 0)
+                    foreach (var cubeMove in movesToPerofrm)
+                        _cube.PerformMove(cubeMove);
+            }
+        }
+
+        private void InvokeTopCross()
+        {
+            const int maxStepsToPerform = 4;
+
+            var top = _cube.Sides[CubeSide.Up];
+            var topColor = top.Color;
+
+            var isTopNormal = top.EdgeTopColor == topColor;
+            var isBottomNormal = top.EdgeBottomColor == topColor;
+            var isLeftNormal = top.EdgeLeftColor == topColor;
+            var isRightNormal = top.EdgeRightColor == topColor;
+
+            var formula = new[]
+            {
+                // F
+                CubeMove.Right,
+                CubeMove.Up,
+                CubeMove.RightOp,
+                CubeMove.UpOp,
+                // F'
+            };
+
+            var movesToPerofrm = new List<CubeMove>();
+            var stepCounter = 0;
+
+            while (!isTopNormal || !isBottomNormal || !isLeftNormal || !isRightNormal)
+            {
+                if (stepCounter++ > maxStepsToPerform)
+                    throw new Exception($"Couldn't find a solution for this cube! [StepCounter is > {maxStepsToPerform}]");
+
+                movesToPerofrm.Clear();
+
+                if (isTopNormal && isBottomNormal)
+                {
+                    movesToPerofrm.Add(CubeMove.Up);
+                }
+                else if (isLeftNormal && isRightNormal)
+                {
+                    movesToPerofrm.Add(CubeMove.Front);
+                    movesToPerofrm.AddRange(formula);
+                    movesToPerofrm.Add(CubeMove.FrontOp);
+                }
+                else if (isLeftNormal && isTopNormal)
+                {
+                    movesToPerofrm.Add(CubeMove.Front);
+                    movesToPerofrm.AddRange(formula);
+                    movesToPerofrm.AddRange(formula);
+                    movesToPerofrm.Add(CubeMove.FrontOp);
+                }
+                else if (isRightNormal && isTopNormal)
+                {
+                    movesToPerofrm.Add(CubeMove.UpOp);
+                }
+                else if (isRightNormal && isBottomNormal)
+                {
+                    movesToPerofrm.Add(CubeMove.UpOp);
+                }
+                else if (isLeftNormal && isBottomNormal)
+                {
+                    movesToPerofrm.Add(CubeMove.Up);
+                }
+                else
+                {   // Just a dot
+                    movesToPerofrm.Add(CubeMove.Front);
+                    movesToPerofrm.AddRange(formula);
+                    movesToPerofrm.Add(CubeMove.FrontOp);
+                }
+
+                if (movesToPerofrm.Count > 0)
+                    foreach (var cubeMove in movesToPerofrm)
+                        _cube.PerformMove(cubeMove);
+
+                top = _cube.Sides[CubeSide.Up];
+                topColor = top.Color;
+
+                isTopNormal = top.EdgeTopColor == topColor;
+                isBottomNormal = top.EdgeBottomColor == topColor;
+                isLeftNormal = top.EdgeLeftColor == topColor;
+                isRightNormal = top.EdgeRightColor == topColor;
+            }
+
+            var stateLeft = new ElementState(CubePosition.Top, CubeSide.Left);
+            var stateRight = new ElementState(CubePosition.Top, CubeSide.Right);
+            var stateFront = new ElementState(CubePosition.Top, CubeSide.Front);
+            var stateBack = new ElementState(CubePosition.Top, CubeSide.Back);
+
+            var front = _cube.Sides[CubeSide.Front];
+            top = _cube.Sides[CubeSide.Up];
+
+            var currentElementState = FindEdgeAndGetState(front, top);
+
+            while (!currentElementState.Equals(stateFront))
+            {
+                if(currentElementState.Equals(stateRight))
+                    _cube.PerformMove(CubeMove.Up);
+                else if (currentElementState.Equals(stateLeft))
+                    _cube.PerformMove(CubeMove.UpOp);
+                else if (currentElementState.Equals(stateBack))
+                    _cube.PerformMove(CubeMove.Up);
+
+                currentElementState = FindEdgeAndGetState(front, top);
+            }
+
+            // -------------------------------------------------------------
+
+            var formulaExchange = new[]
+            {
+                CubeMove.Right,     CubeMove.Up,
+                CubeMove.RightOp,   CubeMove.Up,
+                CubeMove.Right,     CubeMove.Up,    CubeMove.Up,
+                CubeMove.RightOp,   CubeMove.Up
+            };
+
+            var perfomanceCounter = 0;
+
+            while (
+                !FindEdgeAndGetState(_cube.Sides[CubeSide.Left], _cube.Sides[CubeSide.Up]).Equals(stateLeft) ||
+                !FindEdgeAndGetState(_cube.Sides[CubeSide.Right], _cube.Sides[CubeSide.Up]).Equals(stateRight) ||
+                !FindEdgeAndGetState(_cube.Sides[CubeSide.Back], _cube.Sides[CubeSide.Up]).Equals(stateBack) ||
+                !FindEdgeAndGetState(_cube.Sides[CubeSide.Front], _cube.Sides[CubeSide.Up]).Equals(stateFront)
+                )
+            {
+                if (perfomanceCounter++ > maxStepsToPerform)
+                    throw new Exception("Couldn't resolve the cube! 1");
+
+                var left = _cube.Sides[CubeSide.Left];
+                var leftElementState = FindEdgeAndGetState(left, top);
+
+                var secondPerfCounter = 0;
+
+                while (!leftElementState.Equals(stateLeft))
+                {
+                    if (secondPerfCounter++ > maxStepsToPerform)
+                        throw new Exception("Couldn't resolve the cube! 2");
+
+                    movesToPerofrm.Clear();
+
+                    if (leftElementState.Equals(stateBack))
+                    {
+                        movesToPerofrm.Add(CubeMove.RotateOp);
+                        movesToPerofrm.AddRange(formulaExchange);
+                    }
+                    else if (leftElementState.Equals(stateRight))
+                    {
+                        movesToPerofrm.Add(CubeMove.Up);
+                        movesToPerofrm.AddRange(formulaExchange);
+                    }
+
+                    if (movesToPerofrm.Count > 0)
+                        foreach (var cubeMove in movesToPerofrm)
+                            _cube.PerformMove(cubeMove);
+
+                    left = _cube.Sides[CubeSide.Left];
+                    leftElementState = FindEdgeAndGetState(left, top);
+                }
+
+                _cube.PerformMove(CubeMove.RotateOp);
+            }
+        }
+
+        private void InvokeEdge()
         {
             Stack<CubeMove> movesToRestore = new Stack<CubeMove>();
 
@@ -129,7 +435,7 @@ namespace E_2.Models
             } while (true);
         }
 
-        public void InvokeCorner()
+        private void InvokeCorner()
         {
             var endFound = false;
 
@@ -157,7 +463,7 @@ namespace E_2.Models
             } while (!endFound);
         }
 
-        public void InvokeEdgeSecondPart()
+        private void InvokeEdgeSecondPart()
         {
             var endFound = false;
 
@@ -184,7 +490,7 @@ namespace E_2.Models
             } while (!endFound);
         }
 
-        public ElementState FindEdgeAndGetState(Side first = null, Side second = null)
+        private ElementState FindEdgeAndGetState(Side first = null, Side second = null)
         {
             var front = _cube.Sides[CubeSide.Front];
             var bottom = _cube.Sides[CubeSide.Down];
@@ -322,7 +628,7 @@ namespace E_2.Models
             return state;
         }
 
-        public ElementState FindCornerAndGetState()
+        private ElementState FindCornerAndGetState(Side first = null, Side second = null, Side third = null)
         {
             var front = _cube.Sides[CubeSide.Front];
             var bottom = _cube.Sides[CubeSide.Down];
@@ -331,9 +637,9 @@ namespace E_2.Models
             var left = _cube.Sides[CubeSide.Left];
             var right = _cube.Sides[CubeSide.Right];
 
-            var frontColor = front.Color;
-            var bottomColor = bottom.Color;
-            var rightColor = right.Color;
+            var frontColor = first == null ? front.Color : first.Color;
+            var bottomColor = second == null ? bottom.Color : second.Color;
+            var rightColor = third == null ? right.Color : third.Color;
 
             ElementState state = null;
 

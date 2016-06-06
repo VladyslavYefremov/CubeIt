@@ -36,6 +36,7 @@
         Up, UpOp,
         Back, BackOp,
         Rotate, RotateOp,
+        Down, DownOp,
         None
     }
 

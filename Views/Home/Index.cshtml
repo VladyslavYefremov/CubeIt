@@ -8,7 +8,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>Cube IT</title>
+    <title>CubeIt</title>
 
     <!-- use <script src="Url.Content("~/Scripts/jquery-1.5.1.min.js")"></script>
         while developing!
@@ -35,7 +35,7 @@
 <div id="container" class="container">
     <div class="btn-group btn-group-justified btn-group-lg" role="group" aria-label="...">
         <div class="btn-group" role="group">
-            <button type="button" id="sendToSolver" class="btn btn-success btn-lg">Try to solve available states!</button>
+            <button type="button" id="sendToSolver" class="btn btn-success btn-lg">Solve!</button>
         </div>
         <div class="btn-group" role="group">
             <button type="button" id="performQueryResult" class="btn btn-default btn-lg">Perform moves <span id="numberOfMoves" class="badge">-</span></button>
@@ -44,6 +44,13 @@
 
     <div class="alert alert-info" role="alert" id="queryResult">
         Result is going to be here !
+    </div>
+
+    <div class="input-group">
+        <span class="input-group-btn">
+            <button class="btn btn-default" id="performMoves" type="button">Go!</button>
+        </span>
+        <input type="text" id="movesToPerformInput" class="form-control" placeholder="Moves to perform...">
     </div>
 </div>
 

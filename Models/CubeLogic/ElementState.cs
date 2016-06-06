@@ -12,6 +12,11 @@ namespace E_2.Models
 
         public CubeCornerVector Vector { get; }
 
+        public bool IsCornerAt(CubePosition position, CubeSide side)
+        {
+            return (Position == position && OnSide == side);
+        }
+
         public ElementState(CubePosition pos, CubeSide side, bool isNormal = true, CubeCornerVector vector = CubeCornerVector.None)
         {
             Position = pos;

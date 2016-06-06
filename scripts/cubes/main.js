@@ -212,7 +212,7 @@ function scrambleCube() {
     .start(cube.time);
 
     //TO DO: USE FOR SHUFFLE
-    cube.twistDuration = 240;
+    cube.twistDuration = 0;
     var WCA_SCRAMBLE_SHORT = 'sseemm';
     cube.twistCountDown =
             WCA_SCRAMBLE_SHORT.length + cube.twistQueue.history.length;
@@ -225,11 +225,25 @@ function scrambleCube() {
 var _queryResult = "";
 
 $("#performQueryResult").click(function () {
+    cube.twistDuration = 400; // While debugging
+
     if (_queryResult.length > 0) {
         $("#performQueryResult").prop("disabled", true);
         cube.twist(_queryResult);
         _queryResult = "";
         $("#numberOfMoves").text("-");
+    }
+
+    //cube.twistDuration = preDuration;
+
+    return;
+});
+
+$("#performMoves").click(function () {
+    var data = $("#movesToPerformInput").val();
+
+    if (data.length > 0) {
+        cube.twist(data);
     }
     return;
 });

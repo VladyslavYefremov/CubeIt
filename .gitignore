@@ -13,5 +13,6 @@ bin/
 obj/
 fonts/
 Service References/
+Properties/
 jquery*.*
 bootstrap*.*
